@@ -1,0 +1,201 @@
+#!/usr/bin/env ruby
+
+require "optparse"
+require "ruaur"
+require "string"
+
+class RuAURExit
+    GOOD = 0
+    INVALID_OPTION = 1
+    INVALID_ARGUMENT = 2
+    MISSING_ARGUMENT = 3
+    INVALID_OPERATION = 4
+    MULTIPLE_OPERATIONS = 5
+    EXCEPTION = 6
+end
+
+class Operation
+    REMOVE = 1
+    SYNC = 2
+end
+
+def parse(args)
+    options = Hash.new
+    options["operation"] = nil
+
+    # Sync options
+    options["clean"] = false
+    options["noconfirm"] = false
+    options["search"] = false
+    options["upgrade"] = false
+
+    # Remove options
+    options["nosave"] = false
+
+    parser = OptionParser.new do |opts|
+        opts.banner =
+            "Usage: #{File.basename($0)} <operation> [OPTIONS] [pkgs]"
+
+        opts.on("", "OPERATIONS")
+
+        opts.on("-h", "--help", "Display this help message") do
+            puts opts
+            exit
+        end
+
+        opts.on("-R", "--remove", "Remove packages") do
+            if (options["operation"])
+                puts opts
+                exit RuAURExit::MULTIPLE_OPERATIONS
+            end
+            options["operation"] = Operation::REMOVE
+        end
+
+        opts.on("-S", "--sync", "Synchronize packages") do
+            if (options["operation"])
+                puts opts
+                exit RuAURExit::MULTIPLE_OPERATIONS
+            end
+            options["operation"] = Operation::SYNC
+        end
+
+        opts.on("", "SYNC OPTIONS")
+
+        opts.on("-c", "--clean", "Remove packages from the cache") do
+            options["clean"] = true
+        end
+
+        opts.on(
+            "--noconfirm",
+            "Bypass any and all \"Are you sure?\" messages."
+        ) do
+            options["noconfirm"] = true
+        end
+
+        opts.on(
+            "-s",
+            "--search",
+            "Search the sync database and AUR for packages"
+        ) do
+            options["search"] = true
+        end
+
+        opts.on("-u", "--sysupgrade", "Upgrade all packages") do
+            options["upgrade"] = true
+        end
+
+        opts.on("", "REMOVE OPTIONS")
+
+        opts.on("-n", "--nosave", "Completely remove package") do
+            options["nosave"] = true
+        end
+    end
+
+    begin
+        parser.parse!
+    rescue OptionParser::InvalidOption => e
+        puts e.message
+        puts parser
+        exit RuAURExit::INVALID_OPTION
+    rescue OptionParser::InvalidArgument => e
+        puts e.message
+        puts parser
+        exit RuAURExit::INVALID_ARGUMENT
+    rescue OptionParser::MissingArgument => e
+        puts e.message
+        puts parser
+        exit RuAURExit::MISSING_ARGUMENT
+    end
+
+    if (!validate(options))
+        puts parser
+        exit RuAURExit::INVALID_OPERATION
+    end
+
+    options["packages"] = args
+
+    return options
+end
+
+def validate(options)
+    case options["operation"]
+    when Operation::REMOVE
+        if (
+            options["clean"] ||
+            options["noconfirm"] ||
+            options["search"] ||
+            options["upgrade"]
+        )
+            return false
+        end
+    when Operation::SYNC
+        return false if (options["nosave"])
+
+        if (options["clean"])
+            if (
+                options["noconfirm"] ||
+                options["search"] ||
+                options["upgrade"]
+            )
+                return false
+            end
+        elsif (options["noconfirm"])
+            if (
+                options["clean"] ||
+                options["search"] ||
+                options["upgrade"]
+            )
+                return false
+            end
+        elsif (options["search"])
+            if (
+                options["clean"] ||
+                options["noconfirm"] ||
+                options["upgrade"]
+            )
+                return false
+            end
+        elsif (options["upgrade"])
+            if (
+                options["clean"] ||
+                options["noconfirm"] ||
+                options["search"]
+            )
+                return false
+            end
+        end
+    else
+        return false
+    end
+
+    return true
+end
+
+# Parse CLI args
+options = parse(ARGV)
+
+begin
+    ruaur = RuAUR.new
+
+    case options["operation"]
+    when Operation::REMOVE
+        ruaur.remove(options["packages"], options["nosave"])
+    when Operation::SYNC
+        if (options["clean"])
+            ruaur.clean(options["noconfirm"])
+        elsif (options["search"])
+            puts ruaur.search(options["packages"].join(" "))
+        elsif (options["upgrade"])
+            ruaur.upgrade(options["noconfirm"])
+        else
+            ruaur.install(options["packages"], options["noconfirm"])
+        end
+    end
+    exit RuAURExit::GOOD
+rescue RuAUR::Error => e
+    puts e.message.red
+    exit RuAURExit::EXCEPTION
+rescue Interrupt => e
+    # ^C
+    puts
+end
