@@ -134,13 +134,7 @@ def validate(options)
         if (options["clean"])
             return false if (options["search"] || options["upgrade"])
         elsif (options["search"])
-            if (
-                options["clean"] ||
-                options["noconfirm"] ||
-                options["upgrade"]
-            )
-                return false
-            end
+            return false if (options["clean"] || options["upgrade"])
         elsif (options["upgrade"])
             return false if (options["clean"] || options["search"])
         end
