@@ -25,6 +25,7 @@ class RuAUR::Package
 
     def initialize(json, repo = "aur")
         @description = json["Description"]
+        @description ||= ""
         @installed = nil
         @json = json
         @name = json["Name"]

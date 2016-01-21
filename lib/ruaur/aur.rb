@@ -175,6 +175,11 @@ class RuAUR::AUR
             match.captures.each do |cap|
                 cap.gsub(/\n/, " ").scan(/[^' ]+/) do |scan|
                     dep = scan.gsub(/(\<|\=|\>).*$/, "")
+
+                    # Skip any deps that are variables, for now
+                    # FIXME
+                    next if (dep.start_with?(/\$[_{]/))
+
                     if (!@installed.has_key?(dep))
                         puts "Installing dependency: #{dep}".purple
                         if (@pacman.exist?(dep))

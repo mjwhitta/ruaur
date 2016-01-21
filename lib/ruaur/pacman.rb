@@ -34,13 +34,12 @@ class RuAUR::Pacman
     end
 
     def install_local(pkgs, noconfirm = false)
-        pkgs.each do |pkg|
-            puts "Installing #{pkg}...".white
-            if (!noconfirm)
-                system("sudo #{@pac_clr} -U #{pkg}") if (!noconfirm)
-            else
-                system("sudo #{@pac_clr} -U #{pkg} --noconfirm")
-            end
+        puts "Installing compiled packages...".white
+        xzs = pkgs.join(" ")
+        if (!noconfirm)
+            system("sudo #{@pac_clr} -U #{xzs}")
+        else
+            system("sudo #{@pac_clr} -U #{xzs} --noconfirm")
         end
     end
 
