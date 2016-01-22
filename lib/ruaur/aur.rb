@@ -177,8 +177,8 @@ class RuAUR::AUR
                     dep = scan.gsub(/(\<|\=|\>).*$/, "")
 
                     # Skip any deps that are variables, for now
-                    # FIXME
-                    next if (dep.start_with?(/\$[_{]/))
+                    # FIXME maybe find way to evaluate variable value
+                    next if (dep.start_with?("$"))
 
                     if (!@installed.has_key?(dep))
                         puts "Installing dependency: #{dep}".purple
