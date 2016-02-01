@@ -58,8 +58,14 @@ class RuAUR
         unlock
     end
 
-    def search(string)
-        return @pacman.search(string).concat(@aur.search(string))
+    def search(string, names_only = false)
+        found = @pacman.search(string).concat(@aur.search(string))
+        return found if (!names_only)
+        names = Array.new
+        found.each do |pkg|
+            names.push(pkg.name) if (!names.include?(pkg.name))
+        end
+        return names
     end
 
     def unlock

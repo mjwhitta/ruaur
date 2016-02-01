@@ -25,6 +25,7 @@ def parse(args)
 
     # Sync options
     options["clean"] = false
+    options["names-only"] = false
     options["noconfirm"] = false
     options["search"] = false
     options["upgrade"] = false
@@ -66,8 +67,15 @@ def parse(args)
         end
 
         opts.on(
+            "--names-only",
+            "Only show package names (useful for tab-completion)",
+        ) do
+            options["names-only"] = true
+        end
+
+        opts.on(
             "--noconfirm",
-            "Bypass any and all \"Are you sure?\" messages."
+            "Bypass any and all \"Are you sure?\" messages"
         ) do
             options["noconfirm"] = true
         end
@@ -122,6 +130,7 @@ def validate(options)
     when Operation::REMOVE
         if (
             options["clean"] ||
+            options["names-only"] ||
             options["noconfirm"] ||
             options["search"] ||
             options["upgrade"]
@@ -132,11 +141,23 @@ def validate(options)
         return false if (options["nosave"])
 
         if (options["clean"])
-            return false if (options["search"] || options["upgrade"])
+            if (
+                options["names-only"] ||
+                options["search"] ||
+                options["upgrade"]
+            )
+                return false
+            end
         elsif (options["search"])
             return false if (options["clean"] || options["upgrade"])
         elsif (options["upgrade"])
-            return false if (options["clean"] || options["search"])
+            if (
+                options["clean"] ||
+                options["names-only"] ||
+                options["search"]
+            )
+                return false
+            end
         end
     else
         return false
@@ -158,7 +179,10 @@ begin
         if (options["clean"])
             ruaur.clean(options["noconfirm"])
         elsif (options["search"])
-            puts ruaur.search(options["packages"].join(" "))
+            puts ruaur.search(
+                options["packages"].join(" "),
+                options["names-only"]
+            )
         elsif (options["upgrade"])
             ruaur.upgrade(options["noconfirm"])
         else
