@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name = "ruaur"
-    s.version = "0.1.5"
+    s.version = "0.1.6"
     s.date = Time.new.strftime("%Y-%m-%d")
     s.summary = "Can search and install packages for Arch Linux"
     s.description =
@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
         "~> 0.5",
         ">= 0.5.2"
     )
+    s.add_runtime_dependency("colorize", "~> 0.7", ">= 0.7.7")
     s.add_runtime_dependency("scoobydoo", "~> 0.1", ">= 0.1.1")
     s.add_runtime_dependency("typhoeus", "~> 0.8", ">= 0.8.0")
 end

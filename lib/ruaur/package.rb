@@ -1,3 +1,4 @@
+require "colorize"
 require "string"
 
 class RuAUR::Package
@@ -84,7 +85,7 @@ class RuAUR::Package
         end
         header.push(@version.green)
         header.push(@votes.white) if (@votes)
-        header.push("[installed]".purple) if (@installed)
+        header.push("[installed]".magenta) if (@installed)
         out.push(header.join(" "))
 
         @description.word_wrap.each_line do |line|

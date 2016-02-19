@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
+require "colorize"
 require "optparse"
 require "ruaur"
-require "string"
 
 class RuAURExit
     GOOD = 0

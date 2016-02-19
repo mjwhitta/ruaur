@@ -181,7 +181,7 @@ class RuAUR::AUR
                     next if (dep.start_with?("$"))
 
                     if (!@installed.has_key?(dep))
-                        puts "Installing dependency: #{dep}".purple
+                        puts "Installing dependency: #{dep}".magenta
                         if (@pacman.exist?(dep))
                             @pacman.install(dep, noconfirm)
                         else
