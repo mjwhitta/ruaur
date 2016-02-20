@@ -88,7 +88,8 @@ class RuAUR::Package
         header.push("[installed]".magenta) if (@installed)
         out.push(header.join(" "))
 
-        @description.word_wrap.each_line do |line|
+        # Wrap at default minus 4 spaces
+        @description.word_wrap(76).each_line do |line|
             out.push("    #{line.rstrip}")
         end
 
