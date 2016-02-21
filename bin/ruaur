@@ -37,12 +37,18 @@ def parse(args)
         opts.banner =
             "Usage: #{File.basename($0)} <operation> [OPTIONS] [pkgs]"
 
-        opts.on("", "OPERATIONS")
+        opts.on("", "OPTIONS")
 
         opts.on("-h", "--help", "Display this help message") do
             puts opts
             exit
         end
+
+        opts.on("--nocolor", "Disable colorized output") do
+            String.disable_colorization = true
+        end
+
+        opts.on("", "OPERATIONS")
 
         opts.on("-R", "--remove", "Remove packages") do
             if (options["operation"])
