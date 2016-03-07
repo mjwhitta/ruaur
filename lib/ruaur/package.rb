@@ -24,7 +24,41 @@ class RuAUR::Package
         return (self.name.downcase <=> other.name.downcase)
     end
 
-    def initialize(json, repo = "aur")
+    def colorize_header(repo, name, installed, version, votes)
+        header = Array.new
+
+        if (!@colorize)
+            header.push("#{repo}/#{name}")
+            if (installed && newer?(installed))
+                header.push(installed)
+                header.push("->")
+            end
+            header.push(version)
+            header.push(votes) if (votes)
+            header.push("[installed]") if (installed)
+        else
+            header.push(
+                [
+                    repo.light_blue,
+                    "/".light_blue,
+                    name.light_cyan
+                ].join
+            )
+            if (installed && newer?(installed))
+                header.push(installed.light_red)
+                header.push("->")
+            end
+            header.push(version.light_green)
+            header.push(votes.light_white) if (votes)
+            header.push("[installed]".light_magenta) if (installed)
+        end
+
+        return header.join(" ")
+    end
+    private :colorize_header
+
+    def initialize(json, repo = "aur", colorize = false)
+        @colorize = colorize
         @description = json["Description"]
         @description ||= ""
         @installed = nil
@@ -76,21 +110,19 @@ class RuAUR::Package
 
     def to_s
         out = Array.new
-        header = Array.new
-
-        header.push("#{@repo.blue}#{"/".blue}#{@name.cyan}")
-        if (@installed && newer?(@installed))
-            header.push(@installed.red)
-            header.push("->")
-        end
-        header.push(@version.green)
-        header.push(@votes.white) if (@votes)
-        header.push("[installed]".magenta) if (@installed)
-        out.push(header.join(" "))
+        out.push(
+            colorize_header(
+                @repo,
+                @name,
+                @installed,
+                @version,
+                @votes
+            )
+        )
 
         # Wrap at default minus 4 spaces
-        @description.word_wrap(76).each_line do |line|
-            out.push("    #{line.rstrip}")
+        @description.word_wrap(76).split("\n").each do |line|
+            out.push("    #{line.strip}")
         end
 
         return out.join("\n")

@@ -14,21 +14,27 @@ $ gem install ruaur
 ## Usage
 
 ```
+$ ruaur --help
 Usage: ruaur <operation> [OPTIONS] [pkgs]
 
+OPTIONS
+    -h, --help        Display this help message
+        --nocolor     Disable colorized output
+    -v, --verbose     Show backtrace when error occurs
+
 OPERATIONS
-    -h, --help           Display this help message
-    -R, --remove         Remove packages
-    -S, --sync           Synchronize packages
+    -R, --remove      Remove packages
+    -S, --sync        Synchronize packages
 
-SYNC OPTIONS
-    -c, --clean          Remove packages from the cache
-        --noconfirm      Bypass any and all "Are you sure?" messages.
-    -s, --search         Search the sync database and AUR for packages
-    -u, --sysupgrade     Upgrade all packages
+SYNC_OPTIONS
+    -c, --clean       Remove packages from the cache
+        --names-only  Only show package names (useful for tab-completion)
+        --noconfirm   Bypass any and all "Are you sure?" messages
+    -s, --search      Search the sync database and AUR for packages
+    -u, --sysupgrade  Upgrade all packages
 
-REMOVE OPTIONS
-    -n, --nosave         Completely remove package
+REMOVE_OPTIONS
+    -n, --nosave      Completely remove package
 ```
 
 ## Links

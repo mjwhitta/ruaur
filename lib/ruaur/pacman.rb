@@ -1,32 +1,54 @@
+require "colorize"
+require "pathname"
+
 class RuAUR::Pacman
     def clean(noconfirm = false)
-        puts "Cleaning pacman cache...".white
-        system("sudo #{@pac_clr} -Sc") if (!noconfirm)
-        system("sudo #{@pac_clr} -Sc --noconfirm") if (noconfirm)
+        puts colorize_status("Cleaning pacman cache...")
+        system("sudo #{@pac_cmd} -Sc") if (!noconfirm)
+        system("sudo #{@pac_cmd} -Sc --noconfirm") if (noconfirm)
     end
+
+    def colorize_installed(installed)
+        return installed if (!@colorize)
+        return installed.light_yellow
+    end
+    private :colorize_installed
+
+    def colorize_status(status)
+        return status if (!@colorize)
+        return status.light_white
+    end
+    private :colorize_status
 
     def exist?(pkg_name)
-        return !%x(#{@pac_noclr} -Ss "^#{pkg_name}$").empty?
+        return !%x(#{@pac_nocolor} -Ss "^#{pkg_name}$").empty?
     end
 
-    def initialize
-        @pac_noclr = "pacman --color=never"
-        @pac_clr = "pacman --color=always"
+    def initialize(colorize = false)
+        if (ScoobyDoo.where_are_you("pacman").nil?)
+            raise RuAUR::Error::MissingDependencyError.new("pacman")
+        end
+
+        @colorize = colorize
+        @pac_nocolor = "pacman --color=never"
+        @pac_color = "pacman --color=always"
+        @pac_cmd = @pac_color
+        @pac_cmd = @pac_nocolor if (!@colorize)
         @installed = query
     end
 
     def install(pkg_name, noconfirm = false)
         if (@installed.include?(pkg_name))
-            puts "Already installed: #{pkg_name}".yellow
+            puts colorize_installed("Already installed: #{pkg_name}")
             return
         end
 
-        puts "Installing #{pkg_name}...".white
+        puts colorize_status("Installing #{pkg_name}...")
         if (!noconfirm)
-            system("sudo #{@pac_clr} -S #{pkg_name} --needed")
+            system("sudo #{@pac_cmd} -S #{pkg_name} --needed")
         else
             system(
-                "sudo #{@pac_clr} -S #{pkg_name} --needed --noconfirm"
+                "sudo #{@pac_cmd} -S #{pkg_name} --needed --noconfirm"
             )
         end
 
@@ -34,18 +56,18 @@ class RuAUR::Pacman
     end
 
     def install_local(pkgs, noconfirm = false)
-        puts "Installing compiled packages...".white
+        puts colorize_status("Installing compiled packages...")
         xzs = pkgs.join(" ")
         if (!noconfirm)
-            system("sudo #{@pac_clr} -U #{xzs}")
+            system("sudo #{@pac_cmd} -U #{xzs}")
         else
-            system("sudo #{@pac_clr} -U #{xzs} --noconfirm")
+            system("sudo #{@pac_cmd} -U #{xzs} --noconfirm")
         end
     end
 
     def query(pkg_name = "")
         results = Hash.new
-        %x(#{@pac_noclr} -Q #{pkg_name}).split("\n").map do |line|
+        %x(#{@pac_nocolor} -Q #{pkg_name}).split("\n").each do |line|
             line = line.split
             results[line[0]] = line[1]
         end
@@ -58,10 +80,12 @@ class RuAUR::Pacman
         ).expand_path
 
         results = Hash.new
-        %x(#{@pac_noclr} -Qm #{pkg_name}).split("\n").delete_if do |p|
+        %x(
+            #{@pac_nocolor} -Qm #{pkg_name}
+        ).split("\n").delete_if do |p|
             # Skip packages in community
             Dir["#{community}/#{p.split.join("-")}"].any?
-        end.map do |line|
+        end.each do |line|
             line = line.split
             results[line[0]] = line[1]
         end
@@ -69,11 +93,11 @@ class RuAUR::Pacman
     end
 
     def remove(pkg_names, nosave = false)
-        puts "Removing #{pkg_names.join(" ")}...".white
+        puts colorize_status("Removing #{pkg_names.join(" ")}...")
         if (!nosave)
-            system("sudo #{@pac_clr} -R #{pkg_names.join(" ")}")
+            system("sudo #{@pac_cmd} -R #{pkg_names.join(" ")}")
         else
-            system("sudo #{@pac_clr} -Rn #{pkg_names.join(" ")}")
+            system("sudo #{@pac_cmd} -Rn #{pkg_names.join(" ")}")
         end
     end
 
@@ -81,7 +105,9 @@ class RuAUR::Pacman
         results = Array.new
         return results if (pkg_names.nil? || pkg_names.empty?)
 
-        %x(#{@pac_noclr} -Ss #{pkg_names}).each_line do |line|
+        %x(
+            #{@pac_nocolor} -Ss #{pkg_names}
+        ).split("\n").each do |line|
             reg = "^([^\/ ]+)\/([^ ]+) ([^ ]+)( .*)?$"
             match = line.match(/#{reg}/)
             if (match)
@@ -101,7 +127,8 @@ class RuAUR::Pacman
                             "URLPath" => nil,
                             "Version" => version
                         },
-                        repo
+                        repo,
+                        @colorize
                     )
                 )
                 if (trailing.include?("[installed]"))
@@ -116,8 +143,8 @@ class RuAUR::Pacman
     end
 
     def upgrade(noconfirm = false)
-        puts "Updating...".white
-        system("sudo #{@pac_clr} -Syyu") if (!noconfirm)
-        system("sudo #{@pac_clr} -Syyu --noconfirm") if (noconfirm)
+        puts colorize_status("Updating...")
+        system("sudo #{@pac_cmd} -Syyu") if (!noconfirm)
+        system("sudo #{@pac_cmd} -Syyu --noconfirm") if (noconfirm)
     end
 end

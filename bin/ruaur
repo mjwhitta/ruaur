@@ -22,6 +22,7 @@ end
 def parse(args)
     options = Hash.new
     options["operation"] = nil
+    options["verbose"] = false
 
     # Sync options
     options["clean"] = false
@@ -48,6 +49,14 @@ def parse(args)
             String.disable_colorization = true
         end
 
+        opts.on(
+            "-v",
+            "--verbose",
+            "Show backtrace when error occurs"
+        ) do
+            options["verbose"] = true
+        end
+
         opts.on("", "OPERATIONS")
 
         opts.on("-R", "--remove", "Remove packages") do
@@ -66,7 +75,7 @@ def parse(args)
             options["operation"] = Operation::SYNC
         end
 
-        opts.on("", "SYNC OPTIONS")
+        opts.on("", "SYNC_OPTIONS")
 
         opts.on("-c", "--clean", "Remove packages from the cache") do
             options["clean"] = true
@@ -98,7 +107,7 @@ def parse(args)
             options["upgrade"] = true
         end
 
-        opts.on("", "REMOVE OPTIONS")
+        opts.on("", "REMOVE_OPTIONS")
 
         opts.on("-n", "--nosave", "Completely remove package") do
             options["nosave"] = true
@@ -176,7 +185,7 @@ end
 options = parse(ARGV)
 
 begin
-    ruaur = RuAUR.new
+    ruaur = RuAUR.new(!String.disable_colorization)
 
     case options["operation"]
     when Operation::REMOVE
@@ -195,11 +204,30 @@ begin
             ruaur.install(options["packages"], options["noconfirm"])
         end
     end
-    exit RuAURExit::GOOD
-rescue RuAUR::Error => e
-    puts e.message.red
-    exit RuAURExit::EXCEPTION
-rescue Interrupt => e
+rescue Interrupt
     # ^C
-    puts
+    # Exit gracefully
+rescue Errno::EPIPE
+    # Do nothing. This can happen if piping to another program such as
+    # less. Usually if less is closed before we're done with STDOUT.
+rescue RuAUR::Error => e
+    puts e.message
+    exit RuAURExit::EXCEPTION
+rescue Exception => e
+    $stderr.puts "Oops! Looks like an error has occured! If the " \
+        "error persists, file a bug at:".word_wrap
+    $stderr.puts
+    $stderr.puts "    https://gitlab.com/mjwhitta/ruaur/issues"
+    $stderr.puts
+    $stderr.puts "Maybe the message below will help. If not, you " \
+        "can use the --verbose flag to get a backtrace.".word_wrap
+
+    $stderr.puts e.message.white.on_red
+    if (options["verbose"])
+        e.backtrace.each do |line|
+            $stderr.puts line.light_yellow
+        end
+    end
+    exit RuAURExit::EXCEPTION
 end
+exit RuAURExit::GOOD
