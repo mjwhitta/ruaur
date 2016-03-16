@@ -27,7 +27,7 @@ class RuAUR::Package
     def colorize_header(repo, name, installed, version, votes)
         header = Array.new
 
-        if (!@colorize)
+        if (!RuAUR.colorize?)
             header.push("#{repo}/#{name}")
             if (installed && newer?(installed))
                 header.push(installed)
@@ -57,8 +57,7 @@ class RuAUR::Package
     end
     private :colorize_header
 
-    def initialize(json, repo = "aur", colorize = false)
-        @colorize = colorize
+    def initialize(json, repo = "aur")
         @description = json["Description"]
         @description ||= ""
         @installed = nil

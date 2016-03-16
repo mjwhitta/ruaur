@@ -16,25 +16,25 @@ class RuAUR::AUR
     end
 
     def colorize_dependency(dependency)
-        return dependency if (!@colorize)
+        return dependency if (!RuAUR.colorize?)
         return dependency.light_magenta
     end
     private :colorize_dependency
 
     def colorize_installed(installed)
-        return installed if (!@colorize)
+        return installed if (!RuAUR.colorize?)
         return installed.light_yellow
     end
     private :colorize_installed
 
     def colorize_status(status)
-        return status if (!@colorize)
+        return status if (!RuAUR.colorize?)
         return status.light_white
     end
     private :colorize_status
 
     def colorize_upgrade(old, new)
-        return "#{old} -> #{new}" if (!@colorize)
+        return "#{old} -> #{new}" if (!RuAUR.colorize?)
         return "#{old.light_red} -> #{new.light_green}"
     end
     private :colorize_upgrade
@@ -153,18 +153,13 @@ class RuAUR::AUR
         end
 
         return nil if (body["results"].empty?)
-        return RuAUR::Package.new(body["results"], "aur", @colorize)
+        return RuAUR::Package.new(body["results"], "aur")
     end
 
-    def initialize(
-        pacman,
-        cache = "/tmp/ruaur-#{ENV["USER"]}",
-        colorize = false
-    )
+    def initialize(pacman, cache = "/tmp/ruaur-#{ENV["USER"]}")
         cache = "/tmp/ruaur-#{ENV["USER"]}" if (cache.nil?)
         @cache = Pathname.new(cache).expand_path
         FileUtils.mkdir_p(@cache)
-        @colorize = colorize
         @installed = pacman.query_aur
         @pacman = pacman
         @rpc_url = "https://aur.archlinux.org/rpc.php"
@@ -239,7 +234,7 @@ class RuAUR::AUR
         end
 
         body["results"].each do |result|
-            results.push(RuAUR::Package.new(result, "aur", @colorize))
+            results.push(RuAUR::Package.new(result, "aur"))
         end
         return results.sort
     end
@@ -256,7 +251,7 @@ class RuAUR::AUR
         end
 
         body["results"].each do |result|
-            results.push(RuAUR::Package.new(result, "aur", @colorize))
+            results.push(RuAUR::Package.new(result, "aur"))
         end
 
         results.each do |package|

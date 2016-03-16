@@ -16,6 +16,11 @@ class RuAUR
         @aur.clean
     end
 
+    def self.colorize?
+        @@colorize ||= false
+        return @@colorize
+    end
+
     def initialize(colorize = false)
         [
             "makepkg",
@@ -28,9 +33,9 @@ class RuAUR
             end
         end
 
-        @colorize = colorize
-        @pacman = RuAUR::Pacman.new(@colorize)
-        @aur = RuAUR::AUR.new(@pacman, nil, @colorize)
+        @@colorize = colorize
+        @pacman = RuAUR::Pacman.new
+        @aur = RuAUR::AUR.new(@pacman, nil)
         @lock = Pathname.new("/tmp/ruaur.lock").expand_path
     end
 

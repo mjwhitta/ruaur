@@ -9,13 +9,13 @@ class RuAUR::Pacman
     end
 
     def colorize_installed(installed)
-        return installed if (!@colorize)
+        return installed if (!RuAUR.colorize?)
         return installed.light_yellow
     end
     private :colorize_installed
 
     def colorize_status(status)
-        return status if (!@colorize)
+        return status if (!RuAUR.colorize?)
         return status.light_white
     end
     private :colorize_status
@@ -24,16 +24,15 @@ class RuAUR::Pacman
         return !%x(#{@pac_nocolor} -Ss "^#{pkg_name}$").empty?
     end
 
-    def initialize(colorize = false)
+    def initialize
         if (ScoobyDoo.where_are_you("pacman").nil?)
             raise RuAUR::Error::MissingDependencyError.new("pacman")
         end
 
-        @colorize = colorize
         @pac_nocolor = "pacman --color=never"
         @pac_color = "pacman --color=always"
         @pac_cmd = @pac_color
-        @pac_cmd = @pac_nocolor if (!@colorize)
+        @pac_cmd = @pac_nocolor if (!RuAUR.colorize?)
         @installed = query
     end
 
@@ -127,8 +126,7 @@ class RuAUR::Pacman
                             "URLPath" => nil,
                             "Version" => version
                         },
-                        repo,
-                        @colorize
+                        repo
                     )
                 )
                 if (trailing.include?("[installed]"))
