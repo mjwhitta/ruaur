@@ -12,6 +12,7 @@ class RuAURExit
     INVALID_OPERATION = 4
     MULTIPLE_OPERATIONS = 5
     EXCEPTION = 6
+    AMBIGUOUS_ARGUMENT = 6
 end
 
 class Operation
@@ -128,6 +129,10 @@ def parse(args)
         puts e.message
         puts parser
         exit RuAURExit::MISSING_ARGUMENT
+    rescue OptionParser::AmbiguousOption => e
+        puts e.message
+        puts parser
+        exit RuAURExit::AMBIGUOUS_ARGUMENT
     end
 
     if (!validate(options))
