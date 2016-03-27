@@ -1,5 +1,4 @@
 require "colorize"
-require "string"
 
 class RuAUR::Package
     attr_accessor :description
@@ -120,8 +119,8 @@ class RuAUR::Package
         )
 
         # Wrap at default minus 4 spaces
-        @description.word_wrap(76).split("\n").each do |line|
-            out.push("    #{line.strip}")
+        @description.scan(/\S.{0,#{width}}\S(?=\s|$)|\S+/).each do |l|
+            out.push("    #{l.strip}")
         end
 
         return out.join("\n")
