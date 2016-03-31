@@ -119,7 +119,7 @@ class RuAUR::Package
         )
 
         # Wrap at default minus 4 spaces
-        @description.scan(/\S.{0,#{width}}\S(?=\s|$)|\S+/).each do |l|
+        @description.scan(/\S.{0,#{76}}\S(?=\s|$)|\S+/).each do |l|
             out.push("    #{l.strip}")
         end
 
