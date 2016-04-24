@@ -1,6 +1,6 @@
 require "archive/tar/minitar"
-require "colorize"
 require "fileutils"
+require "hilighter"
 require "io/wait"
 require "json"
 require "scoobydoo"
@@ -9,38 +9,14 @@ require "zlib"
 
 class RuAUR::AUR
     def clean
-        puts colorize_status("Cleaning AUR cache...")
+        puts hilight_status("Cleaning AUR cache...")
         Dir.chdir(@cache) do
             FileUtils.rm_rf(Dir["*"])
         end
     end
 
-    def colorize_dependency(dependency)
-        return dependency if (!RuAUR.colorize?)
-        return dependency.light_magenta
-    end
-    private :colorize_dependency
-
-    def colorize_installed(installed)
-        return installed if (!RuAUR.colorize?)
-        return installed.light_yellow
-    end
-    private :colorize_installed
-
-    def colorize_status(status)
-        return status if (!RuAUR.colorize?)
-        return status.light_white
-    end
-    private :colorize_status
-
-    def colorize_upgrade(old, new)
-        return "#{old} -> #{new}" if (!RuAUR.colorize?)
-        return "#{old.light_red} -> #{new.light_green}"
-    end
-    private :colorize_upgrade
-
     def compile(package)
-        puts colorize_status("Compiling #{package.name}...")
+        puts hilight_status("Compiling #{package.name}...")
         if (Process.uid == 0)
             system("chown -R nobody:nobody .")
             system("su -s /bin/sh nobody -c \"makepkg -sr\"")
@@ -60,7 +36,7 @@ class RuAUR::AUR
     def download(package)
         FileUtils.rm_f(Dir["#{package.name}.tar.gz*"])
 
-        puts colorize_status("Downloading #{package.name}...")
+        puts hilight_status("Downloading #{package.name}...")
         tarball(package.name, package.url, "#{package.name}.tar.gz")
 
         tgz = Pathname.new("#{package.name}.tar.gz").expand_path
@@ -108,7 +84,7 @@ class RuAUR::AUR
     def extract(package)
         FileUtils.rm_rf(package.name)
 
-        puts colorize_status("Extracting #{package.name}...")
+        puts hilight_status("Extracting #{package.name}...")
         File.open("#{package.name}.tar.gz", "rb") do |tgz|
             tar = Zlib::GzipReader.new(tgz)
             Archive::Tar::Minitar.unpack(tar, ".")
@@ -123,7 +99,7 @@ class RuAUR::AUR
     private :extract
 
     def find_upgrades
-        puts colorize_status("Checking for AUR updates...")
+        puts hilight_status("Checking for AUR updates...")
 
         upgrades = Hash.new
         multiinfo(@installed.keys).each do |package|
@@ -141,6 +117,30 @@ class RuAUR::AUR
         return upgrades
     end
     private :find_upgrades
+
+    def hilight_dependency(dependency)
+        return dependency if (!RuAUR.hilight?)
+        return dependency.light_magenta
+    end
+    private :hilight_dependency
+
+    def hilight_installed(installed)
+        return installed if (!RuAUR.hilight?)
+        return installed.light_yellow
+    end
+    private :hilight_installed
+
+    def hilight_status(status)
+        return status if (!RuAUR.hilight?)
+        return status.light_white
+    end
+    private :hilight_status
+
+    def hilight_upgrade(old, new)
+        return "#{old} -> #{new}" if (!RuAUR.hilight?)
+        return "#{old.light_red} -> #{new.light_green}"
+    end
+    private :hilight_upgrade
 
     def info(package)
         return nil if (package.nil? || package.empty?)
@@ -176,7 +176,7 @@ class RuAUR::AUR
             @installed.include?(pkg_name) &&
             !package.newer?(@installed[pkg_name])
         )
-            puts colorize_installed("Already installed: #{pkg_name}")
+            puts hilight_installed("Already installed: #{pkg_name}")
             return
         end
 
@@ -207,7 +207,7 @@ class RuAUR::AUR
                     next if (dep.start_with?("$"))
 
                     if (!@installed.has_key?(dep))
-                        puts colorize_dependency(
+                        puts hilight_dependency(
                             "Installing dependency: #{dep}"
                         )
                         if (@pacman.exist?(dep))
@@ -288,8 +288,8 @@ class RuAUR::AUR
         find_upgrades.each do |pkg_name, versions|
             old, new = versions
 
-            puts colorize_status("Upgrading #{pkg_name}...")
-            puts colorize_upgrade(old, new)
+            puts hilight_status("Upgrading #{pkg_name}...")
+            puts hilight_upgrade(old, new)
             install(pkg_name, noconfirm)
         end
     end

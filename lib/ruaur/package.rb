@@ -1,4 +1,4 @@
-require "colorize"
+require "hilighter"
 
 class RuAUR::Package
     attr_accessor :description
@@ -23,10 +23,10 @@ class RuAUR::Package
         return (self.name.downcase <=> other.name.downcase)
     end
 
-    def colorize_header(repo, name, installed, version, votes)
+    def hilight_header(repo, name, installed, version, votes)
         header = Array.new
 
-        if (!RuAUR.colorize?)
+        if (!RuAUR.hilight?)
             header.push("#{repo}/#{name}")
             if (installed && newer?(installed))
                 header.push(installed)
@@ -54,7 +54,7 @@ class RuAUR::Package
 
         return header.join(" ")
     end
-    private :colorize_header
+    private :hilight_header
 
     def initialize(json, repo = "aur")
         @description = json["Description"]
@@ -109,7 +109,7 @@ class RuAUR::Package
     def to_s
         out = Array.new
         out.push(
-            colorize_header(
+            hilight_header(
                 @repo,
                 @name,
                 @installed,

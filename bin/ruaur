@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require "colorize"
+require "hilighter"
 require "optparse"
 require "ruaur"
 
@@ -49,7 +49,7 @@ def parse(args)
         end
 
         opts.on("--nocolor", "Disable colorized output") do
-            String.disable_colorization = true
+            Hilighter.disable
         end
 
         opts.on(
@@ -192,7 +192,7 @@ end
 options = parse(ARGV)
 
 begin
-    ruaur = RuAUR.new(!String.disable_colorization)
+    ruaur = RuAUR.new(!Hilighter.disable?)
 
     case options["operation"]
     when Operation::REMOVE
