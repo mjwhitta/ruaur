@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
         "~> 0.5",
         ">= 0.5.2"
     )
-    s.add_runtime_dependency("hilighter", "~> 0.1", ">= 0.1.0")
+    s.add_runtime_dependency("hilighter", "~> 0.1", ">= 0.1.3")
     s.add_runtime_dependency("scoobydoo", "~> 0.1", ">= 0.1.3")
     s.add_runtime_dependency("typhoeus", "~> 1.0", ">= 1.0.1")
 end
