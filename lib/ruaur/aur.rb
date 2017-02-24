@@ -1,8 +1,8 @@
-require "archive/tar/minitar"
 require "fileutils"
 require "hilighter"
 require "io/wait"
 require "json"
+require "minitar"
 require "scoobydoo"
 require "typhoeus"
 require "zlib"
@@ -87,7 +87,7 @@ class RuAUR::AUR
         puts hilight_status("Extracting #{package.name}...")
         File.open("#{package.name}.tar.gz", "rb") do |tgz|
             tar = Zlib::GzipReader.new(tgz)
-            Archive::Tar::Minitar.unpack(tar, ".")
+            Minitar.unpack(tar, ".")
         end
         FileUtils.rm_f("pax_global_header")
 

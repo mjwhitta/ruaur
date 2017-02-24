@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name = "ruaur"
-    s.version = "0.2.7"
+    s.version = "0.2.8"
     s.date = Time.new.strftime("%Y-%m-%d")
     s.summary = "Can search and install packages for Arch Linux"
     s.description =
@@ -16,12 +16,8 @@ Gem::Specification.new do |s|
     s.homepage = "https://mjwhitta.github.io/ruaur"
     s.license = "GPL-3.0"
     s.add_development_dependency("rake", "~> 10.5", ">= 10.5.0")
-    s.add_runtime_dependency(
-        "archive-tar-minitar",
-        "~> 0.5",
-        ">= 0.5.2"
-    )
     s.add_runtime_dependency("hilighter", "~> 0.1", ">= 0.1.3")
+    s.add_runtime_dependency("minitar", "~> 0.6", ">= 0.6.1")
     s.add_runtime_dependency("scoobydoo", "~> 0.1", ">= 0.1.3")
     s.add_runtime_dependency("typhoeus", "~> 1.0", ">= 1.0.1")
 end
