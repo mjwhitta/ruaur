@@ -64,11 +64,19 @@ class RuAUR::Pacman
         end
     end
 
-    def query(pkg_name = "")
+    def query(pkg_name = "", info = false)
         results = Hash.new
-        %x(#{@pac_nocolor} -Q #{pkg_name}).split("\n").each do |line|
-            line = line.split
-            results[line[0]] = line[1]
+        if (info)
+            result = %x(#{@pac_nocolor} -Qi #{pkg_name} 2>/dev/null)
+            result.strip!
+            results[pkg_name] = result if (!result.empty?)
+        else
+            result = %x(#{@pac_nocolor} -Q #{pkg_name} 2>/dev/null)
+            result.strip!
+            result.split("\n").each do |l|
+                name, version = l.split
+                results[name] = version
+            end
         end
         return results
     end

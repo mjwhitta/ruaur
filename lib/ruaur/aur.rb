@@ -17,6 +17,7 @@ class RuAUR::AUR
 
     def compile(package)
         puts hilight_status("Compiling #{package.name}...")
+
         if (Process.uid == 0)
             system("chown -R nobody:nobody .")
             system("su -s /bin/sh nobody -c \"makepkg -sr\"")
@@ -25,8 +26,11 @@ class RuAUR::AUR
         end
 
         compiled = Dir["#{package.name}*.pkg.tar.xz"]
+
         if (compiled.empty?)
-            raise RuAUR::Error::FailedToCompileError.new(package.name)
+            raise RuAUR::Error::FailedToCompileError.new(
+                package.name
+            )
         end
 
         return compiled
@@ -142,11 +146,19 @@ class RuAUR::AUR
     end
     private :hilight_upgrade
 
-    def info(package)
-        return nil if (package.nil? || package.empty?)
+    def info(pkg_name)
+        return nil if (pkg_name.nil? || pkg_name.empty?)
 
-        query = "type=info&arg=#{package}"
-        body = JSON.parse(Typhoeus.get("#{@rpc_url}?#{query}").body)
+        query = "type=info&arg=#{pkg_name}"
+        response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
+
+        if (response.timed_out?)
+            raise RuAUR::Error::AURError.new(
+                "Check your internet connection!"
+            )
+        end
+
+        body = JSON.parse(response.body)
 
         if (body["type"] == "error")
             raise RuAUR::Error::AURError.new(body["results"])
@@ -167,7 +179,6 @@ class RuAUR::AUR
 
     def install(pkg_name, noconfirm = false)
         package = info(pkg_name)
-
         if (package.nil?)
             raise RuAUR::Error::PackageNotFoundError.new(pkg_name)
         end
@@ -184,6 +195,7 @@ class RuAUR::AUR
             download(package)
             extract(package)
         end
+
         Dir.chdir("#{@cache}/#{package.name}") do
             return if (edit_pkgbuild(package, noconfirm))
             install_dependencies(package, noconfirm)
@@ -196,7 +208,6 @@ class RuAUR::AUR
 
     def install_dependencies(package, noconfirm)
         pkgbuild = File.read("PKGBUILD")
-
         pkgbuild.match(/^depends\=\(([^\)]+)\)/m) do |match|
             match.captures.each do |cap|
                 cap.gsub(/\n/, " ").scan(/[^' ]+/) do |scan|
@@ -223,11 +234,19 @@ class RuAUR::AUR
     private :install_dependencies
 
     def multiinfo(pkgs)
-        results = Array.new
-        return results if (pkgs.nil? || pkgs.empty?)
+        return Array.new if (pkgs.nil? || pkgs.empty?)
 
+        results = Array.new
         query = "type=multiinfo&arg[]=#{pkgs.join("&arg[]=")}"
-        body = JSON.parse(Typhoeus.get("#{@rpc_url}?#{query}").body)
+        response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
+
+        if (response.timed_out?)
+            raise RuAUR::Error::AURError.new(
+                "Check your internet connection!"
+            )
+        end
+
+        body = JSON.parse(response.body)
 
         if (body["type"] == "error")
             raise RuAUR::Error::AURError.new(body["results"])
@@ -236,7 +255,35 @@ class RuAUR::AUR
         body["results"].each do |result|
             results.push(RuAUR::Package.new(result, "aur"))
         end
+
         return results.sort
+    end
+
+    def query(pkg_name, info = false)
+        package = info(pkg_name)
+        return Hash.new if (package.nil?)
+
+        results = Hash.new
+        json = package.json
+
+        if (!json.empty?)
+            results[pkg_name] = json["Version"]
+            if (info)
+                max = 0
+                json.each do |k, v|
+                    max = k.length if (max < k.length)
+                end
+
+                out = Array.new
+                json.each do |k, v|
+                    filler = Array.new(max - k.length + 2, " ").join
+                    out.push("#{k}#{filler}: #{v}")
+                end
+                results[pkg_name] = out.join("\n")
+            end
+        end
+
+        return results
     end
 
     def search(string)
@@ -244,7 +291,15 @@ class RuAUR::AUR
         return results if (string.nil? || string.empty?)
 
         query = "type=search&arg=#{string}"
-        body = JSON.parse(Typhoeus.get("#{@rpc_url}?#{query}").body)
+        response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
+
+        if (response.timed_out?)
+            raise RuAUR::Error::AURError.new(
+                "Check your internet connection!"
+            )
+        end
+
+        body = JSON.parse(response.body)
 
         if (body["type"] == "error")
             raise RuAUR::Error::AURError.new(body["results"])
@@ -269,17 +324,21 @@ class RuAUR::AUR
 
         tgz = File.open(file, "wb")
         request = Typhoeus::Request.new(url)
+
         request.on_headers do |response|
             if (response.code != 200)
                 raise RuAUR::Error::FailedToDownloadError.new(name)
             end
         end
+
         request.on_body do |chunk|
             tgz.write(chunk)
         end
+
         request.on_complete do
             tgz.close
         end
+
         request.run
     end
     private :tarball

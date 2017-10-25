@@ -4,6 +4,27 @@ require "hilighter"
 require "optparse"
 require "ruaur"
 
+class Flags
+    # Query
+    INFO = 1
+
+    # Remove
+    NOSAVE = 2
+
+    # Sync
+    CLEAN = 3
+    NAMES_ONLY = 4
+    NOCONFIRM = 5
+    SEARCH = 6
+    UPGRADE = 7
+end
+
+class Operation
+    QUERY = 1
+    REMOVE = 2
+    SYNC = 3
+end
+
 class RuAURExit
     GOOD = 0
     INVALID_OPTION = 1
@@ -15,25 +36,11 @@ class RuAURExit
     AMBIGUOUS_ARGUMENT = 6
 end
 
-class Operation
-    REMOVE = 1
-    SYNC = 2
-end
-
 def parse(args)
     options = Hash.new
+    options["flags"] = Array.new
     options["operation"] = nil
     options["verbose"] = false
-
-    # Sync options
-    options["clean"] = false
-    options["names-only"] = false
-    options["noconfirm"] = false
-    options["search"] = false
-    options["upgrade"] = false
-
-    # Remove options
-    options["nosave"] = false
 
     parser = OptionParser.new do |opts|
         opts.summary_width = 17
@@ -60,9 +67,24 @@ def parse(args)
             options["verbose"] = true
         end
 
+        opts.on("--version", "Show version") do
+            __FILE__.match(/ruaur-(\d+\.\d+\.\d+)/) do |m|
+                puts m[1]
+            end
+            exit RuAURExit::GOOD
+        end
+
         opts.on("", "OPERATIONS")
 
-        opts.on("-R", "--remove", "Remove packages") do
+        opts.on("-Q", "--query", "Query the package database") do
+            if (options["operation"])
+                puts opts
+                exit RuAURExit::MULTIPLE_OPERATIONS
+            end
+            options["operation"] = Operation::QUERY
+        end
+
+        opts.on("-R", "--remove", "Remove package(s)") do
             if (options["operation"])
                 puts opts
                 exit RuAURExit::MULTIPLE_OPERATIONS
@@ -70,7 +92,7 @@ def parse(args)
             options["operation"] = Operation::REMOVE
         end
 
-        opts.on("-S", "--sync", "Synchronize packages") do
+        opts.on("-S", "--sync", "Synchronize package(s)") do
             if (options["operation"])
                 puts opts
                 exit RuAURExit::MULTIPLE_OPERATIONS
@@ -78,42 +100,52 @@ def parse(args)
             options["operation"] = Operation::SYNC
         end
 
+        opts.on("", "QUERY_OPTIONS")
+
+        opts.on(
+            "-i",
+            "--info",
+            "Display information for given package(s)"
+        ) do
+            options["flags"].push(Flags::INFO)
+        end
+
+        opts.on("", "REMOVE_OPTIONS")
+
+        opts.on("-n", "--nosave", "Completely remove package") do
+            options["flags"].push(Flags::NOSAVE)
+        end
+
         opts.on("", "SYNC_OPTIONS")
 
         opts.on("-c", "--clean", "Remove packages from the cache") do
-            options["clean"] = true
+            options["flags"].push(Flags::CLEAN)
         end
 
         opts.on(
             "--names-only",
             "Only show package names (useful for tab-completion)",
         ) do
-            options["names-only"] = true
+            options["flags"].push(Flags::NAMES_ONLY)
         end
 
         opts.on(
             "--noconfirm",
             "Bypass any and all \"Are you sure?\" messages"
         ) do
-            options["noconfirm"] = true
+            options["flags"].push(Flags::NOCONFIRM)
         end
 
         opts.on(
             "-s",
             "--search",
-            "Search the sync database and AUR for packages"
+            "Search the sync database and AUR for package(s)"
         ) do
-            options["search"] = true
+            options["flags"].push(Flags::SEARCH)
         end
 
         opts.on("-u", "--sysupgrade", "Upgrade all packages") do
-            options["upgrade"] = true
-        end
-
-        opts.on("", "REMOVE_OPTIONS")
-
-        opts.on("-n", "--nosave", "Completely remove package") do
-            options["nosave"] = true
+            options["flags"].push(Flags::UPGRADE)
         end
     end
 
@@ -149,34 +181,45 @@ end
 
 def validate(options)
     case options["operation"]
-    when Operation::REMOVE
-        if (
-            options["clean"] ||
-            options["names-only"] ||
-            options["noconfirm"] ||
-            options["search"] ||
-            options["upgrade"]
-        )
-            return false
+    when Operation::QUERY
+        flags = options["flags"].select do |flag|
+            flag != Flags::INFO
         end
+        return false if (!flags.empty?)
+    when Operation::REMOVE
+        flags = options["flags"].select do |flag|
+            flag != Flags::NOSAVE
+        end
+        return false if (!flags.empty?)
     when Operation::SYNC
-        return false if (options["nosave"])
+        flags = options["flags"].select do |flag|
+            (flag != Flags::CLEAN) &&
+            (flag != Flags::NAMES_ONLY) &&
+            (flag != Flags::NOCONFIRM) &&
+            (flag != Flags::SEARCH) &&
+            (flag != Flags::UPGRADE)
+        end
+        return false if (!flags.empty?)
 
-        if (options["clean"])
+        if (options["flags"].include?(Flags::CLEAN))
             if (
-                options["names-only"] ||
-                options["search"] ||
-                options["upgrade"]
+                options["flags"].include?(Flags::NAMES_ONLY) ||
+                options["flags"].include?(Flags::SEARCH) ||
+                options["flags"].include?(Flags::UPGRADE)
             )
                 return false
             end
-        elsif (options["search"])
-            return false if (options["clean"] || options["upgrade"])
-        elsif (options["upgrade"])
+        elsif (options["flags"].include?(Flags::SEARCH))
             if (
-                options["clean"] ||
-                options["names-only"] ||
-                options["search"]
+                options["flags"].include?(Flags::CLEAN) || options["flags"].include?(Flags::UPGRADE)
+            )
+                return false
+            end
+        elsif (options["flags"].include?(Flags::UPGRADE))
+            if (
+                options["flags"].include?(Flags::CLEAN) ||
+                options["flags"].include?(Flags::NAMES_ONLY) ||
+                options["flags"].include?(Flags::SEARCH)
             )
                 return false
             end
@@ -195,20 +238,33 @@ begin
     ruaur = RuAUR.new(!Hilighter.disable?)
 
     case options["operation"]
+    when Operation::QUERY
+        ruaur.query(
+            options["packages"],
+            options["flags"].include?(Flags::INFO)
+        )
     when Operation::REMOVE
-        ruaur.remove(options["packages"], options["nosave"])
+        ruaur.remove(
+            options["packages"],
+            options["flags"].include?(Flags::NOSAVE)
+        )
     when Operation::SYNC
-        if (options["clean"])
-            ruaur.clean(options["noconfirm"])
-        elsif (options["search"])
+        if (options["flags"].include?(Flags::CLEAN))
+            ruaur.clean(options["flags"].include?(Flags::NOCONFIRM))
+        elsif (options["flags"].include?(Flags::SEARCH))
             puts ruaur.search(
                 options["packages"].join(" "),
-                options["names-only"]
+                options["flags"].include?(Flags::NAMES_ONLY)
             )
-        elsif (options["upgrade"])
-            ruaur.upgrade(options["noconfirm"])
+        elsif (options["flags"].include?(Flags::UPGRADE))
+            ruaur.upgrade(
+                options["flags"].include?(Flags::NOCONFIRM)
+            )
         else
-            ruaur.install(options["packages"], options["noconfirm"])
+            ruaur.install(
+                options["packages"],
+                options["flags"].include?(Flags::NOCONFIRM)
+            )
         end
     end
 rescue Interrupt
