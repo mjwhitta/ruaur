@@ -354,7 +354,7 @@ class RuAUR::AUR
         end
 
         tgz = File.open(file, "wb")
-        request = Typhoeus::Request.new(url)
+        request = Typhoeus::Request.new(url, timeout: 5)
 
         request.on_headers do |response|
             if (response.code != 200)
