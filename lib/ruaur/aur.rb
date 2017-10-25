@@ -185,6 +185,7 @@ class RuAUR::AUR
             )
         end
 
+        return nil if (response.body.empty?)
         body = JSON.parse(response.body)
 
         if (body["type"] == "error")
@@ -250,9 +251,9 @@ class RuAUR::AUR
     private :install_dependencies
 
     def multiinfo(pkgs)
-        return Array.new if (pkgs.nil? || pkgs.empty?)
-
         results = Array.new
+        return results if (pkgs.nil? || pkgs.empty?)
+
         query = "type=multiinfo&arg[]=#{pkgs.join("&arg[]=")}"
         response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
 
@@ -262,6 +263,7 @@ class RuAUR::AUR
             )
         end
 
+        return results if (response.body.empty?)
         body = JSON.parse(response.body)
 
         if (body["type"] == "error")
@@ -330,6 +332,7 @@ class RuAUR::AUR
             )
         end
 
+        return results if (response.body.empty?)
         body = JSON.parse(response.body)
 
         if (body["type"] == "error")
