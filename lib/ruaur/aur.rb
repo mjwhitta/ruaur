@@ -37,10 +37,13 @@ class RuAUR::AUR
     end
     private :compile
 
-    def download(package)
+    def download(package, status = true)
         FileUtils.rm_f(Dir["#{package.name}.tar.gz*"])
 
-        puts hilight_status("Downloading #{package.name}...")
+        if (status)
+            puts hilight_status("Downloading #{package.name}...")
+        end
+
         tarball(package.name, package.url, "#{package.name}.tar.gz")
 
         tgz = Pathname.new("#{package.name}.tar.gz").expand_path
@@ -85,10 +88,13 @@ class RuAUR::AUR
     end
     private :edit_pkgbuild
 
-    def extract(package)
+    def extract(package, status = true)
         FileUtils.rm_rf(package.name)
 
-        puts hilight_status("Extracting #{package.name}...")
+        if (status)
+            puts hilight_status("Extracting #{package.name}...")
+        end
+
         File.open("#{package.name}.tar.gz", "rb") do |tgz|
             tar = Zlib::GzipReader.new(tgz)
             Minitar.unpack(tar, ".")
@@ -121,6 +127,27 @@ class RuAUR::AUR
         return upgrades
     end
     private :find_upgrades
+
+    def get_dependencies(package)
+        deps = Array.new
+        Dir.chdir("#{@cache}/#{package.name}") do
+            pkgbuild = File.read("PKGBUILD")
+            pkgbuild.match(/^depends\=\(([^\)]+)\)/m) do |match|
+                match.captures.each do |cap|
+                    cap.gsub(/\n/, " ").scan(/[^' ]+/) do |scan|
+                        # Strip version info and skip any deps that
+                        # are variables, for now
+                        # FIXME maybe find way to evaluate variable
+                        # value
+                        dep = scan.gsub(/(\<|\=|\>).*$/, "")
+                        next if (dep.start_with?("$"))
+                        deps.push(dep)
+                    end
+                end
+            end
+        end
+        return deps
+    end
 
     def hilight_dependency(dependency)
         return dependency if (!RuAUR.hilight?)
@@ -207,26 +234,15 @@ class RuAUR::AUR
     end
 
     def install_dependencies(package, noconfirm)
-        pkgbuild = File.read("PKGBUILD")
-        pkgbuild.match(/^depends\=\(([^\)]+)\)/m) do |match|
-            match.captures.each do |cap|
-                cap.gsub(/\n/, " ").scan(/[^' ]+/) do |scan|
-                    dep = scan.gsub(/(\<|\=|\>).*$/, "")
-
-                    # Skip any deps that are variables, for now
-                    # FIXME maybe find way to evaluate variable value
-                    next if (dep.start_with?("$"))
-
-                    if (!@installed.has_key?(dep))
-                        puts hilight_dependency(
-                            "Installing dependency: #{dep}"
-                        )
-                        if (@pacman.exist?(dep))
-                            @pacman.install(dep, noconfirm)
-                        else
-                            install(dep, noconfirm)
-                        end
-                    end
+        get_dependencies(package).each do |dep|
+            if (!@installed.has_key?(dep))
+                puts hilight_dependency(
+                    "Installing dependency: #{dep}"
+                )
+                if (@pacman.exist?(dep))
+                    @pacman.install(dep, noconfirm)
+                else
+                    install(dep, noconfirm)
                 end
             end
         end
@@ -269,7 +285,7 @@ class RuAUR::AUR
         if (!json.empty?)
             results[pkg_name] = json["Version"]
             if (info)
-                max = 0
+                max = 12 # Length of "Dependencies"
                 json.each do |k, v|
                     max = k.length if (max < k.length)
                 end
@@ -279,8 +295,23 @@ class RuAUR::AUR
                     filler = Array.new(max - k.length + 2, " ").join
                     out.push("#{k}#{filler}: #{v}")
                 end
+
+                Dir.chdir(@cache) do
+                    download(package, false)
+                    extract(package, false)
+                end
+
+                deps = get_dependencies(package)
+                filler = Array.new(max - 10, " ").join
+                out.push("Dependencies#{filler}: #{deps.join("  ")}")
+
                 results[pkg_name] = out.join("\n")
             end
+        end
+
+        # Clean up
+        Dir.chdir(@cache) do
+            FileUtils.rm_rf(Dir["#{package.name}*"])
         end
 
         return results
