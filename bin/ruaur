@@ -7,16 +7,17 @@ require "ruaur"
 class Flags
     # Query
     INFO = 1
+    OWNS = 2
 
     # Remove
-    NOSAVE = 2
+    NOSAVE = 3
 
     # Sync
-    CLEAN = 3
-    NAMES_ONLY = 4
-    NOCONFIRM = 5
-    SEARCH = 6
-    UPGRADE = 7
+    CLEAN = 4
+    NAMES_ONLY = 5
+    NOCONFIRM = 6
+    SEARCH = 7
+    UPGRADE = 8
 end
 
 class Operation
@@ -110,6 +111,14 @@ def parse(args)
             options["flags"].push(Flags::INFO)
         end
 
+        opts.on(
+            "-o",
+            "--owns",
+            "Search for packages that own the specified file(s)"
+        ) do
+            options["flags"].push(Flags::OWNS)
+        end
+
         opts.on("", "REMOVE_OPTIONS")
 
         opts.on("-n", "--nosave", "Completely remove package") do
@@ -183,7 +192,8 @@ def validate(options)
     case options["operation"]
     when Operation::QUERY
         flags = options["flags"].select do |flag|
-            flag != Flags::INFO
+            (flag != Flags::INFO) &&
+            (flag != Flags::OWNS)
         end
         return false if (!flags.empty?)
     when Operation::REMOVE
@@ -241,7 +251,8 @@ begin
     when Operation::QUERY
         ruaur.query(
             options["packages"],
-            options["flags"].include?(Flags::INFO)
+            options["flags"].include?(Flags::INFO),
+            options["flags"].include?(Flags::OWNS)
         )
     when Operation::REMOVE
         ruaur.remove(

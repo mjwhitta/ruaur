@@ -99,6 +99,10 @@ class RuAUR::Pacman
         return results
     end
 
+    def query_owns(file_names)
+        return %x(#{@pac_nocolor} -Qo #{file_names})
+    end
+
     def remove(pkg_names, nosave = false)
         puts hilight_status("Removing #{pkg_names.join(" ")}...")
         if (!nosave)

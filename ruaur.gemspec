@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name = "ruaur"
-    s.version = "0.3.3"
+    s.version = "0.3.4"
     s.date = Time.new.strftime("%Y-%m-%d")
     s.summary = "Can search and install packages for Arch Linux"
     s.description =
