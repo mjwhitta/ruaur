@@ -58,33 +58,36 @@ class RuAUR::AUR
     def edit_pkgbuild(package, noconfirm = false)
         return false if (noconfirm)
 
-        print "Do you want to edit the PKGBUILD y/[n]/q?: "
-        answer = nil
-        while (answer.nil?)
-            begin
-                system("stty raw -echo")
-                if ($stdin.ready?)
-                    answer = $stdin.getc
-                else
-                    sleep 0.1
+        loop do
+            print "Do you want to edit the PKGBUILD y/[n]/q?: "
+            answer = nil
+            while (answer.nil?)
+                begin
+                    system("stty raw -echo")
+                    if ($stdin.ready?)
+                        answer = $stdin.getc
+                    else
+                        sleep 0.1
+                    end
+                ensure
+                    system("stty -raw echo")
                 end
-            ensure
-                system("stty -raw echo")
+            end
+            puts
+
+            case answer
+            when "n", "N", "\r"
+                return false
+            when "q", "Q", "\x03"
+                # Quit or ^C
+                return true
+            when "y", "Y"
+                editor = ENV["EDITOR"]
+                editor = ScoobyDoo.where_are_you("vim") if (editor.nil?)
+                editor = ScoobyDoo.where_are_you("vi") if (editor.nil?)
+                system("#{editor} PKGBUILD")
             end
         end
-        puts
-
-        case answer
-        when "y", "Y"
-            editor = ENV["EDITOR"]
-            editor = ScoobyDoo.where_are_you("vim") if (editor.nil?)
-            editor = ScoobyDoo.where_are_you("vi") if (editor.nil?)
-            system("#{editor} PKGBUILD")
-        when "q", "Q", "\x03"
-            # Quit or ^C
-            return true
-        end
-        return false
     end
     private :edit_pkgbuild
 
