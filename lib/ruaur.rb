@@ -12,8 +12,25 @@ class RuAUR
     private :check_and_lock
 
     def clean(noconfirm)
+        check_and_lock
         @pacman.clean(noconfirm)
         @aur.clean
+    ensure
+        unlock
+    end
+
+    def download(pkg_names, noconfirm = false)
+        pkg_names.each do |pkg_name|
+            if (@pacman.exist?(pkg_name))
+                @pacman.download(pkg_name, noconfirm)
+                system(
+                    "cp /var/cache/pacman/pkg/#{pkg_name}-[0-9]*.xz ."
+                )
+            else
+                package = @aur.info(pkg_name)
+                @aur.download(package)
+            end
+        end
     end
 
     def self.hilight?
@@ -57,7 +74,10 @@ class RuAUR
         unlock
     end
 
-    def query(pkg_names, info = false, owns = false)
+    def query(pkg_names, options = [])
+        info = options.include?(RuAUR::Options::Info)
+        owns = options.include?(RuAUR::Options::Owns)
+
         if (owns)
             puts @pacman.query_owns(pkg_names.join(" "))
         else
@@ -78,8 +98,9 @@ class RuAUR
         end
     end
 
-    def remove(pkg_names, nosave = false)
+    def remove(pkg_names, options = [])
         check_and_lock
+        nosave = options.include?(RuAUR::Options::NoSave)
         @pacman.remove(pkg_names, nosave)
     ensure
         unlock
@@ -95,6 +116,30 @@ class RuAUR
         return names
     end
 
+    def sync(packages = [], options = [])
+        if (options.include?(RuAUR::Options::Clean))
+            clean(options.include?(RuAUR::Options::NoConfirm))
+        elsif (options.include?(RuAUR::Options::Download))
+            download(
+                packages,
+                options.include?(RuAUR::Options::NoConfirm)
+            )
+        elsif (options.include?(RuAUR::Options::Search))
+            return search(
+                packages.join(" "),
+                options.include?(RuAUR::Options::NamesOnly)
+            )
+        elsif (options.include?(RuAUR::Options::Upgrade))
+            upgrade(options.include?(RuAUR::Options::NoConfirm))
+        else
+            install(
+                packages,
+                options.include?(RuAUR::Options::NoConfirm)
+            )
+        end
+        return nil
+    end
+
     def unlock
         FileUtils.rm_f(@lock)
     end
@@ -107,9 +152,66 @@ class RuAUR
     ensure
         unlock
     end
+
+    def self.validate_options(options)
+        valid = {
+            RuAUR::Operation::Query => {
+                "valid" => [
+                    RuAUR::Options::Info,
+                    RuAUR::Options::Owns
+                ]
+            },
+            RuAUR::Operation::Remove => {
+                "valid" => [
+                    RuAUR::Options::NoSave
+                ]
+            },
+            RuAUR::Operation::Sync => {
+                "valid" => [
+                    RuAUR::Options::Clean,
+                    RuAUR::Options::Download,
+                    RuAUR::Options::NamesOnly,
+                    RuAUR::Options::NoConfirm,
+                    RuAUR::Options::Search,
+                    RuAUR::Options::Upgrade
+                ],
+                RuAUR::Options::Clean => [
+                    RuAUR::Options::Clean,
+                    RuAUR::Options::NoConfirm
+                ],
+                RuAUR::Options::Download => [
+                    RuAUR::Options::Download,
+                    RuAUR::Options::NoConfirm
+                ],
+                RuAUR::Options::Search => [
+                    RuAUR::Options::NamesOnly,
+                    RuAUR::Options::NoConfirm,
+                    RuAUR::Options::Search
+                ],
+                RuAUR::Options::Upgrade => [
+                    RuAUR::Options::NoConfirm,
+                    RuAUR::Options::Upgrade
+                ]
+            }
+        }
+
+        return false if (valid[options["operation"]].nil?)
+
+        valid[options["operation"]].each do |k, v|
+            if ((k == "valid") || options["options"].include?(k))
+                options["options"].each do |o|
+                    return false if (!v.include?(o))
+                end
+            end
+        end
+
+        return true
+    end
 end
 
 require "ruaur/aur"
 require "ruaur/error"
+require "ruaur/operation"
+require "ruaur/options"
 require "ruaur/package"
 require "ruaur/pacman"

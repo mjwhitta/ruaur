@@ -53,7 +53,6 @@ class RuAUR::AUR
             )
         end
     end
-    private :download
 
     def edit_pkgbuild(package, noconfirm = false)
         return false if (noconfirm)
@@ -134,18 +133,9 @@ class RuAUR::AUR
     def get_dependencies(package)
         deps = Array.new
         Dir.chdir("#{@cache}/#{package.name}") do
-            pkgbuild = File.read("PKGBUILD")
-            pkgbuild.match(/^depends\=\(([^\)]+)\)/m) do |match|
-                match.captures.each do |cap|
-                    cap.gsub(/\n/, " ").scan(/[^' ]+/) do |scan|
-                        # Strip version info and skip any deps that
-                        # are variables, for now
-                        # FIXME maybe find way to evaluate variable
-                        # value
-                        dep = scan.gsub(/(\<|\=|\>).*$/, "")
-                        next if (dep.start_with?("$"))
-                        deps.push(dep)
-                    end
+            %x(makepkg --printsrcinfo).each_line do |line|
+                line.match(/depends\s*\=\s*([^>=:\n]+)/) do |m|
+                    deps.push(m[1])
                 end
             end
         end

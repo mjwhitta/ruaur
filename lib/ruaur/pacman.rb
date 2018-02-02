@@ -8,6 +8,15 @@ class RuAUR::Pacman
         system("sudo #{@pac_cmd} -Sc --noconfirm") if (noconfirm)
     end
 
+    def download(pkg_name, noconfirm = false)
+        puts hilight_status("Downloading #{pkg_name}...")
+        if (!noconfirm)
+            system("sudo #{@pac_cmd} -Sw #{pkg_name}")
+        else
+            system("sudo #{@pac_cmd} -Sw #{pkg_name} --noconfirm")
+        end
+    end
+
     def exist?(pkg_name)
         return !%x(#{@pac_nocolor} -Ss "^#{pkg_name}$").empty?
     end
@@ -82,17 +91,10 @@ class RuAUR::Pacman
     end
 
     def query_aur(pkg_name = "")
-        community = Pathname.new(
-            "/var/lib/pacman/sync/community"
-        ).expand_path
-
         results = Hash.new
         %x(
-            #{@pac_nocolor} -Qm #{pkg_name}
-        ).split("\n").delete_if do |p|
-            # Skip packages in community
-            Dir["#{community}/#{p.split.join("-")}"].any?
-        end.each do |line|
+            #{@pac_nocolor} -Qm #{pkg_name} 2>/dev/null
+        ).each_line do |line|
             line = line.split
             results[line[0]] = line[1]
         end

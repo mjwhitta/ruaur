@@ -4,28 +4,6 @@ require "hilighter"
 require "optparse"
 require "ruaur"
 
-class Flags
-    # Query
-    INFO = 1
-    OWNS = 2
-
-    # Remove
-    NOSAVE = 3
-
-    # Sync
-    CLEAN = 4
-    NAMES_ONLY = 5
-    NOCONFIRM = 6
-    SEARCH = 7
-    UPGRADE = 8
-end
-
-class Operation
-    QUERY = 1
-    REMOVE = 2
-    SYNC = 3
-end
-
 class RuAURExit
     GOOD = 0
     INVALID_OPTION = 1
@@ -39,12 +17,12 @@ end
 
 def parse(args)
     options = Hash.new
-    options["flags"] = Array.new
     options["operation"] = nil
+    options["options"] = Array.new
     options["verbose"] = false
 
     parser = OptionParser.new do |opts|
-        opts.summary_width = 17
+        opts.summary_width = 19
 
         opts.banner =
             "Usage: #{File.basename($0)} <operation> [OPTIONS] [pkgs]"
@@ -82,7 +60,7 @@ def parse(args)
                 puts opts
                 exit RuAURExit::MULTIPLE_OPERATIONS
             end
-            options["operation"] = Operation::QUERY
+            options["operation"] = RuAUR::Operation::Query
         end
 
         opts.on("-R", "--remove", "Remove package(s)") do
@@ -90,7 +68,7 @@ def parse(args)
                 puts opts
                 exit RuAURExit::MULTIPLE_OPERATIONS
             end
-            options["operation"] = Operation::REMOVE
+            options["operation"] = RuAUR::Operation::Remove
         end
 
         opts.on("-S", "--sync", "Synchronize package(s)") do
@@ -98,7 +76,7 @@ def parse(args)
                 puts opts
                 exit RuAURExit::MULTIPLE_OPERATIONS
             end
-            options["operation"] = Operation::SYNC
+            options["operation"] = RuAUR::Operation::Sync
         end
 
         opts.on("", "QUERY_OPTIONS")
@@ -108,7 +86,7 @@ def parse(args)
             "--info",
             "Display information for given package(s)"
         ) do
-            options["flags"].push(Flags::INFO)
+            options["options"].push(RuAUR::Options::Info)
         end
 
         opts.on(
@@ -116,33 +94,33 @@ def parse(args)
             "--owns",
             "Search for packages that own the specified file(s)"
         ) do
-            options["flags"].push(Flags::OWNS)
+            options["options"].push(RuAUR::Options::Owns)
         end
 
         opts.on("", "REMOVE_OPTIONS")
 
         opts.on("-n", "--nosave", "Completely remove package") do
-            options["flags"].push(Flags::NOSAVE)
+            options["options"].push(RuAUR::Options::NoSave)
         end
 
         opts.on("", "SYNC_OPTIONS")
 
         opts.on("-c", "--clean", "Remove packages from the cache") do
-            options["flags"].push(Flags::CLEAN)
+            options["options"].push(RuAUR::Options::Clean)
         end
 
         opts.on(
             "--names-only",
             "Only show package names (useful for tab-completion)",
         ) do
-            options["flags"].push(Flags::NAMES_ONLY)
+            options["options"].push(RuAUR::Options::NamesOnly)
         end
 
         opts.on(
             "--noconfirm",
             "Bypass any and all \"Are you sure?\" messages"
         ) do
-            options["flags"].push(Flags::NOCONFIRM)
+            options["options"].push(RuAUR::Options::NoConfirm)
         end
 
         opts.on(
@@ -150,11 +128,19 @@ def parse(args)
             "--search",
             "Search the sync database and AUR for package(s)"
         ) do
-            options["flags"].push(Flags::SEARCH)
+            options["options"].push(RuAUR::Options::Search)
         end
 
         opts.on("-u", "--sysupgrade", "Upgrade all packages") do
-            options["flags"].push(Flags::UPGRADE)
+            options["options"].push(RuAUR::Options::Upgrade)
+        end
+
+        opts.on(
+            "-w",
+            "--downloadonly",
+            "Retrieve packages from the server, but do not install"
+        ) do
+            options["options"].push(RuAUR::Options::Download)
         end
     end
 
@@ -178,7 +164,7 @@ def parse(args)
         exit RuAURExit::AMBIGUOUS_ARGUMENT
     end
 
-    if (!validate(options))
+    if (!RuAUR::validate_options(options))
         puts parser
         exit RuAURExit::INVALID_OPERATION
     end
@@ -188,95 +174,19 @@ def parse(args)
     return options
 end
 
-def validate(options)
-    case options["operation"]
-    when Operation::QUERY
-        flags = options["flags"].select do |flag|
-            (flag != Flags::INFO) &&
-            (flag != Flags::OWNS)
-        end
-        return false if (!flags.empty?)
-    when Operation::REMOVE
-        flags = options["flags"].select do |flag|
-            flag != Flags::NOSAVE
-        end
-        return false if (!flags.empty?)
-    when Operation::SYNC
-        flags = options["flags"].select do |flag|
-            (flag != Flags::CLEAN) &&
-            (flag != Flags::NAMES_ONLY) &&
-            (flag != Flags::NOCONFIRM) &&
-            (flag != Flags::SEARCH) &&
-            (flag != Flags::UPGRADE)
-        end
-        return false if (!flags.empty?)
-
-        if (options["flags"].include?(Flags::CLEAN))
-            if (
-                options["flags"].include?(Flags::NAMES_ONLY) ||
-                options["flags"].include?(Flags::SEARCH) ||
-                options["flags"].include?(Flags::UPGRADE)
-            )
-                return false
-            end
-        elsif (options["flags"].include?(Flags::SEARCH))
-            if (
-                options["flags"].include?(Flags::CLEAN) || options["flags"].include?(Flags::UPGRADE)
-            )
-                return false
-            end
-        elsif (options["flags"].include?(Flags::UPGRADE))
-            if (
-                options["flags"].include?(Flags::CLEAN) ||
-                options["flags"].include?(Flags::NAMES_ONLY) ||
-                options["flags"].include?(Flags::SEARCH)
-            )
-                return false
-            end
-        end
-    else
-        return false
-    end
-
-    return true
-end
-
 # Parse CLI args
 options = parse(ARGV)
 
 begin
     ruaur = RuAUR.new(!Hilighter.disable?)
-
     case options["operation"]
-    when Operation::QUERY
-        ruaur.query(
-            options["packages"],
-            options["flags"].include?(Flags::INFO),
-            options["flags"].include?(Flags::OWNS)
-        )
-    when Operation::REMOVE
-        ruaur.remove(
-            options["packages"],
-            options["flags"].include?(Flags::NOSAVE)
-        )
-    when Operation::SYNC
-        if (options["flags"].include?(Flags::CLEAN))
-            ruaur.clean(options["flags"].include?(Flags::NOCONFIRM))
-        elsif (options["flags"].include?(Flags::SEARCH))
-            puts ruaur.search(
-                options["packages"].join(" "),
-                options["flags"].include?(Flags::NAMES_ONLY)
-            )
-        elsif (options["flags"].include?(Flags::UPGRADE))
-            ruaur.upgrade(
-                options["flags"].include?(Flags::NOCONFIRM)
-            )
-        else
-            ruaur.install(
-                options["packages"],
-                options["flags"].include?(Flags::NOCONFIRM)
-            )
-        end
+    when RuAUR::Operation::Query
+        ruaur.query(options["packages"], options["options"])
+    when RuAUR::Operation::Remove
+        ruaur.remove(options["packages"], options["options"])
+    when RuAUR::Operation::Sync
+        ret = ruaur.sync(options["packages"], options["options"])
+        puts ret if (ret)
     end
 rescue Interrupt
     # ^C
