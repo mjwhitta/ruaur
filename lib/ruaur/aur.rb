@@ -135,10 +135,10 @@ class RuAUR::AUR
         Dir.chdir("#{@cache}/#{package.name}") do
             system("chown -R nobody:nobody .") if (Process.uid == 0)
             cmd = "su -s /bin/sh nobody -c \"makepkg --printsrcinfo\""
-            cmd = "makepkg -sr" if (Process.uid != 0)
+            cmd = "makepkg --printsrcinfo" if (Process.uid != 0)
             %x(#{cmd}).each_line do |line|
-                line.match(/depends\s*\=\s*([^>=:\n]+)/) do |m|
-                    deps.push(m[1])
+                line.match(/depends\s*\=\s*([^>=:]+)/) do |m|
+                    deps.push(m[1].strip)
                 end
             end
         end
