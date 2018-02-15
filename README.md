@@ -7,7 +7,7 @@ the Pacman sync database as well as the Arch User Repository (AUR).
 
 ## How to install
 
-```bash
+```
 $ gem install ruaur
 ```
 
