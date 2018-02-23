@@ -138,7 +138,7 @@ class RuAUR::AUR
             cmd = "makepkg --printsrcinfo" if (Process.uid != 0)
             %x(#{cmd}).each_line do |line|
                 line.match(
-                    /depends(_i686|_x86_64)?\s*\=\s*([^>=:]+)/
+                    /^\s*depends(_i686|_x86_64)?\s*\=\s*([^>=:]+)/
                 ) do |m|
                     deps.push(m[2].strip)
                 end
