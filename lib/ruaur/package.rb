@@ -79,25 +79,27 @@ class RuAUR::Package
     end
 
     def newer?(ver)
-        self_version = @version.split(/\D+/).map(&:to_i)
-        other_version = ver.split(/\D+/).map(&:to_i)
+        pkg_version = @version.split(/\D+/).map(&:to_i)
+        installed_version = ver.split(/\D+/).map(&:to_i)
 
-        [self_version.size, other_version.size].max.times do |i|
-            if (self_version[i] > other_version[i])
-                return true
-            end
+        [pkg_version.size, installed_version.size].max.times do |i|
+            return false if (pkg_version[i].nil?)
+            return true if (installed_version[i].nil?)
+            return true if (pkg_version[i] > installed_version[i])
+            return false if (pkg_version[i] < installed_version[i])
         end
         return false
     end
 
     def older?(version)
-        self_version = @version.split(/\D+/).map(&:to_i)
-        other_version = version.split(/\D+/).map(&:to_i)
+        pkg_version = @version.split(/\D+/).map(&:to_i)
+        installed_version = version.split(/\D+/).map(&:to_i)
 
-        [self_version.size, other_version.size].max.times do |i|
-            if (self_version[i] < other_version[i])
-                return true
-            end
+        [pkg_version.size, installed_version.size].max.times do |i|
+            return true if (pkg_version[i].nil?)
+            return false if (installed_version[i].nil?)
+            return true if (pkg_version[i] < installed_version[i])
+            return false if (pkg_version[i] > installed_version[i])
         end
         return false
     end
