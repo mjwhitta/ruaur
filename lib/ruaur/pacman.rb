@@ -1,5 +1,6 @@
 require "hilighter"
 require "pathname"
+require "shellwords"
 
 class RuAUR::Pacman
     def clean(noconfirm = false)
@@ -18,7 +19,9 @@ class RuAUR::Pacman
     end
 
     def exist?(pkg_name)
-        return !%x(#{@pac_nocolor} -Ss "^#{pkg_name}$").empty?
+        return !%x(
+            #{@pac_nocolor} -Ss "^#{pkg_name.shellescape}$"
+        ).empty?
     end
 
     def hilight_installed(installed)
@@ -35,7 +38,7 @@ class RuAUR::Pacman
 
     def initialize
         if (ScoobyDoo.where_are_you("pacman").nil?)
-            raise RuAUR::Error::MissingDependencyError.new("pacman")
+            raise RuAUR::Error::MissingDependency.new("pacman")
         end
 
         @pac_nocolor = "pacman --color=never"

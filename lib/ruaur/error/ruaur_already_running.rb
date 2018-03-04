@@ -1,4 +1,4 @@
-class RuAUR::Error::RuAURAlreadyRunningError < RuAUR::Error
+class RuAUR::Error::RuAURAlreadyRunning < RuAUR::Error
     def initialize
         super("RuAUR is already running")
     end

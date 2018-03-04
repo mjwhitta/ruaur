@@ -4,7 +4,7 @@ require "scoobydoo"
 class RuAUR
     def check_and_lock
         if (@lock.exist?)
-            raise RuAUR::Error::RuAURAlreadyRunningError.new
+            raise RuAUR::Error::RuAURAlreadyRunning.new
         end
 
         FileUtils.touch(@lock)
@@ -46,7 +46,7 @@ class RuAUR
             "sudo"
         ].each do |dep|
             if (ScoobyDoo.where_are_you(dep).nil?)
-                raise RuAUR::Error::MissingDependencyError.new(dep)
+                raise RuAUR::Error::MissingDependency.new(dep)
             end
         end
 
@@ -58,7 +58,7 @@ class RuAUR
 
     def install(pkg_names, noconfirm = false)
         if (pkg_names.nil? || pkg_names.empty?)
-            raise RuAUR::Error::PackageNotFoundError.new
+            raise RuAUR::Error::PackageNotFound.new
         end
 
         check_and_lock

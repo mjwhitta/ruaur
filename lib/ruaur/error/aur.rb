@@ -1,4 +1,4 @@
-class RuAUR::Error::AURError < RuAUR::Error
+class RuAUR::Error::AUR < RuAUR::Error
     def initialize(msg)
         super(msg)
     end

@@ -28,7 +28,7 @@ class RuAUR::AUR
         compiled = Dir["#{package.name}*.pkg.tar.xz"]
 
         if (compiled.empty?)
-            raise RuAUR::Error::FailedToCompileError.new(
+            raise RuAUR::Error::FailedToCompile.new(
                 package.name
             )
         end
@@ -48,7 +48,7 @@ class RuAUR::AUR
 
         tgz = Pathname.new("#{package.name}.tar.gz").expand_path
         if (!tgz.exist?)
-            raise RuAUR::Error::FailedToDownloadError.new(
+            raise RuAUR::Error::FailedToDownload.new(
                 package.name
             )
         end
@@ -105,7 +105,7 @@ class RuAUR::AUR
 
         dir = Pathname.new(package.name).expand_path
         if (!dir.exist? || !dir.directory?)
-            raise RuAUR::Error::FailedToExtractError.new(package.name)
+            raise RuAUR::Error::FailedToExtract.new(package.name)
         end
     end
     private :extract
@@ -178,7 +178,7 @@ class RuAUR::AUR
         response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
 
         if (response.timed_out?)
-            raise RuAUR::Error::AURError.new(
+            raise RuAUR::Error::AUR.new(
                 "Check your internet connection!"
             )
         end
@@ -187,7 +187,7 @@ class RuAUR::AUR
         body = JSON.parse(response.body)
 
         if (body["type"] == "error")
-            raise RuAUR::Error::AURError.new(body["results"])
+            raise RuAUR::Error::AUR.new(body["results"])
         end
 
         return nil if (body["results"].empty?)
@@ -206,7 +206,7 @@ class RuAUR::AUR
     def install(pkg_name, noconfirm = false)
         package = info(pkg_name)
         if (package.nil?)
-            raise RuAUR::Error::PackageNotFoundError.new(pkg_name)
+            raise RuAUR::Error::PackageNotFound.new(pkg_name)
         end
 
         if (
@@ -256,7 +256,7 @@ class RuAUR::AUR
         response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
 
         if (response.timed_out?)
-            raise RuAUR::Error::AURError.new(
+            raise RuAUR::Error::AUR.new(
                 "Check your internet connection!"
             )
         end
@@ -265,7 +265,7 @@ class RuAUR::AUR
         body = JSON.parse(response.body)
 
         if (body["type"] == "error")
-            raise RuAUR::Error::AURError.new(body["results"])
+            raise RuAUR::Error::AUR.new(body["results"])
         end
 
         body["results"].each do |result|
@@ -325,7 +325,7 @@ class RuAUR::AUR
         response = Typhoeus.get("#{@rpc_url}?#{query}", timeout: 5)
 
         if (response.timed_out?)
-            raise RuAUR::Error::AURError.new(
+            raise RuAUR::Error::AUR.new(
                 "Check your internet connection!"
             )
         end
@@ -334,7 +334,7 @@ class RuAUR::AUR
         body = JSON.parse(response.body)
 
         if (body["type"] == "error")
-            raise RuAUR::Error::AURError.new(body["results"])
+            raise RuAUR::Error::AUR.new(body["results"])
         end
 
         body["results"].each do |result|
@@ -359,7 +359,7 @@ class RuAUR::AUR
 
         request.on_headers do |response|
             if (response.code != 200)
-                raise RuAUR::Error::FailedToDownloadError.new(name)
+                raise RuAUR::Error::FailedToDownload.new(name)
             end
         end
 
