@@ -111,9 +111,9 @@ class RuAUR::Pacman
     def remove(pkg_names, nosave = false)
         puts hilight_status("Removing #{pkg_names.join(" ")}...")
         if (!nosave)
-            system("sudo #{@pac_cmd} -R #{pkg_names.join(" ")}")
+            system("sudo #{@pac_cmd} -Rs #{pkg_names.join(" ")}")
         else
-            system("sudo #{@pac_cmd} -Rn #{pkg_names.join(" ")}")
+            system("sudo #{@pac_cmd} -Rns #{pkg_names.join(" ")}")
         end
     end
 
