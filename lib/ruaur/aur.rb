@@ -25,12 +25,12 @@ class RuAUR::AUR
             system("makepkg -sr")
         end
 
-        compiled = Dir["#{package.name}*.pkg.tar.xz"]
+        tar = "#{package.name}*.pkg.tar"
+        compiled = Dir["#{tar}.zst"]
+        compiled = Dir["#{tar}.xz"] if (compiled.empty?)
 
         if (compiled.empty?)
-            raise RuAUR::Error::FailedToCompile.new(
-                package.name
-            )
+            raise RuAUR::Error::FailedToCompile.new(package.name)
         end
 
         return compiled
