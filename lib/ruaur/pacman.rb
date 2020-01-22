@@ -4,13 +4,13 @@ require "shellwords"
 
 class RuAUR::Pacman
     def clean(noconfirm = false)
-        puts hilight_status("Cleaning pacman cache...")
+        puts(hilight_status("Cleaning pacman cache..."))
         system("sudo #{@pac_cmd} -Sc") if (!noconfirm)
         system("sudo #{@pac_cmd} -Sc --noconfirm") if (noconfirm)
     end
 
     def download(pkg_name, noconfirm = false)
-        puts hilight_status("Downloading #{pkg_name}...")
+        puts(hilight_status("Downloading #{pkg_name}..."))
         if (!noconfirm)
             system("sudo #{@pac_cmd} -Sw #{pkg_name}")
         else
@@ -50,11 +50,11 @@ class RuAUR::Pacman
 
     def install(pkg_name, noconfirm = false)
         if (@installed.include?(pkg_name))
-            puts hilight_installed("Already installed: #{pkg_name}")
+            puts(hilight_installed("Already installed: #{pkg_name}"))
             return
         end
 
-        puts hilight_status("Installing #{pkg_name}...")
+        puts(hilight_status("Installing #{pkg_name}..."))
         if (!noconfirm)
             system("sudo #{@pac_cmd} -S #{pkg_name} --needed")
         else
@@ -67,7 +67,7 @@ class RuAUR::Pacman
     end
 
     def install_local(pkgs, noconfirm = false)
-        puts hilight_status("Installing compiled packages...")
+        puts(hilight_status("Installing compiled packages..."))
         xzs = pkgs.join(" ")
         if (!noconfirm)
             system("sudo #{@pac_cmd} -U #{xzs}")
@@ -109,7 +109,7 @@ class RuAUR::Pacman
     end
 
     def remove(pkg_names, nosave = false)
-        puts hilight_status("Removing #{pkg_names.join(" ")}...")
+        puts(hilight_status("Removing #{pkg_names.join(" ")}..."))
         if (!nosave)
             system("sudo #{@pac_cmd} -Rs #{pkg_names.join(" ")}")
         else
@@ -158,7 +158,7 @@ class RuAUR::Pacman
     end
 
     def upgrade(noconfirm = false)
-        puts hilight_status("Updating...")
+        puts(hilight_status("Updating..."))
         system("sudo #{@pac_cmd} -Syyu") if (!noconfirm)
         system("sudo #{@pac_cmd} -Syyu --noconfirm") if (noconfirm)
     end

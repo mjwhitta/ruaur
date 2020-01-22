@@ -21,5 +21,5 @@ Gem::Specification.new do |s|
     s.metadata = {"source_code_uri" => s.homepage}
     s.name = "ruaur"
     s.summary = "Can search and install packages for Arch Linux"
-    s.version = "1.1.2"
+    s.version = "1.2.0"
 end

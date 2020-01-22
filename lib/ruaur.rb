@@ -79,19 +79,19 @@ class RuAUR
         owns = options.include?(RuAUR::Options::Owns)
 
         if (owns)
-            puts @pacman.query_owns(pkg_names.join(" "))
+            puts(@pacman.query_owns(pkg_names.join(" ")))
         else
             pkg_names.each do |pkg_name|
                 results = @pacman.query(pkg_name, info)
                 results.each do |name, details|
                     print "#{name} " if (!info)
-                    puts details
+                    puts(details)
                     puts if (info)
                 end
                 results = @aur.query(pkg_name, info)
                 results.each do |name, details|
                     print "#{name} " if (!info)
-                    puts details
+                    puts(details)
                     puts if (info)
                 end
             end

@@ -9,20 +9,23 @@ require "zlib"
 
 class RuAUR::AUR
     def clean
-        puts hilight_status("Cleaning AUR cache...")
+        puts(hilight_status("Cleaning AUR cache..."))
         Dir.chdir(@cache) do
             FileUtils.rm_rf(Dir["*"])
         end
     end
 
-    def compile(package)
-        puts hilight_status("Compiling #{package.name}...")
+    def compile(package, noconfirm = false)
+        puts(hilight_status("Compiling #{package.name}..."))
+
+        cmd = "makepkg -rs"
+        cmd = "makepkg --noconfirm -rs" if (noconfirm)
 
         if (Process.uid == 0)
             system("chown -R nobody:nobody .")
-            system("su -s /bin/sh nobody -c \"makepkg -sr\"")
+            system("su -s /bin/sh nobody -c \"#{cmd}\"")
         else
-            system("makepkg -sr")
+            system(cmd)
         end
 
         tar = "#{package.name}*.pkg.tar"
@@ -41,7 +44,7 @@ class RuAUR::AUR
         FileUtils.rm_f(Dir["#{package.name}.tar.gz*"])
 
         if (status)
-            puts hilight_status("Downloading #{package.name}...")
+            puts(hilight_status("Downloading #{package.name}..."))
         end
 
         tarball(package.name, package.url, "#{package.name}.tar.gz")
@@ -94,7 +97,7 @@ class RuAUR::AUR
         FileUtils.rm_rf(package.name)
 
         if (status)
-            puts hilight_status("Extracting #{package.name}...")
+            puts(hilight_status("Extracting #{package.name}..."))
         end
 
         File.open("#{package.name}.tar.gz", "rb") do |tgz|
@@ -111,7 +114,7 @@ class RuAUR::AUR
     private :extract
 
     def find_upgrades
-        puts hilight_status("Checking for AUR updates...")
+        puts(hilight_status("Checking for AUR updates..."))
 
         upgrades = Hash.new
         multiinfo(@installed.keys).each do |package|
@@ -132,15 +135,19 @@ class RuAUR::AUR
 
     def get_dependencies(package)
         deps = Array.new
+        keep = false
         Dir.chdir("#{@cache}/#{package.name}") do
             system("chown -R nobody:nobody .") if (Process.uid == 0)
             cmd = "su -s /bin/sh nobody -c \"makepkg --printsrcinfo\""
             cmd = "makepkg --printsrcinfo" if (Process.uid != 0)
             %x(#{cmd}).each_line do |line|
+                line.match(/^\s*pkg(base|name)\s*\=\s*(.+)/) do |m|
+                    keep = (m[2] == package.name)
+                end
                 line.match(
                     /^\s*depends(_i686|_x86_64)?\s*\=\s*([^>=:]+)/
                 ) do |m|
-                    deps.push(m[2].strip)
+                    deps.push(m[2].strip) if (keep)
                 end
             end
         end
@@ -213,7 +220,7 @@ class RuAUR::AUR
             @installed.include?(pkg_name) &&
             !package.newer?(@installed[pkg_name])
         )
-            puts hilight_installed("Already installed: #{pkg_name}")
+            puts(hilight_installed("Already installed: #{pkg_name}"))
             return
         end
 
@@ -225,7 +232,7 @@ class RuAUR::AUR
         Dir.chdir("#{@cache}/#{package.name}") do
             return if (edit_pkgbuild(package, noconfirm))
             install_dependencies(package, noconfirm)
-            compiled = compile(package)
+            compiled = compile(package, noconfirm)
             @pacman.install_local(compiled, noconfirm)
         end
 
@@ -235,8 +242,10 @@ class RuAUR::AUR
     def install_dependencies(package, noconfirm)
         get_dependencies(package).each do |dep|
             if (!@installed.has_key?(dep))
-                puts hilight_dependency(
-                    "Installing dependency: #{dep}"
+                puts(
+                    hilight_dependency(
+                        "Installing dependency: #{dep}"
+                    )
                 )
                 if (@pacman.exist?(dep))
                     @pacman.install(dep, noconfirm)
@@ -379,8 +388,8 @@ class RuAUR::AUR
         find_upgrades.each do |pkg_name, versions|
             old, new = versions
 
-            puts hilight_status("Upgrading #{pkg_name}...")
-            puts hilight_upgrade(old, new)
+            puts(hilight_status("Upgrading #{pkg_name}..."))
+            puts(hilight_upgrade(old, new))
             install(pkg_name, noconfirm)
         end
     end
