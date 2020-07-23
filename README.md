@@ -1,5 +1,7 @@
 # RuAUR
 
+<a href="https://www.buymeacoffee.com/mjwhitta">🍪 Buy me a cookie</a>
+
 ## What is this?
 
 RuAUR is a Ruby gem that allows searching and installing packages from
