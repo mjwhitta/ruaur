@@ -48,7 +48,7 @@ SYNC_OPTIONS
 
 ## Links
 
-- [Source](https://gitlab.com/mjwhitta/ruaur)
+- [Source](https://github.com/mjwhitta/ruaur)
 - [RubyGems](https://rubygems.org/gems/ruaur)
 
 ## TODO

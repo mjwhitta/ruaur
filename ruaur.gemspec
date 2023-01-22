@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
         Dir["*"]
     end
     s.files = Dir["lib/**/*.rb"]
-    s.homepage = "https://gitlab.com/mjwhitta/ruaur"
+    s.homepage = "https://github.com/mjwhitta/ruaur"
     s.license = "GPL-3.0"
     s.metadata = {"source_code_uri" => s.homepage}
     s.name = "ruaur"
